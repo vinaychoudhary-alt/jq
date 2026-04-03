@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Joveo · Supply Gap Agent</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root { --bg: #04070f; --surface: #080d1a; --accent: #2563eb; --text: #e8edf5; --red: #ef4444; }
+  body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; margin: 0; display: flex; height: 100vh; }
+  nav { width: 280px; border-right: 1px solid #131f38; padding: 2rem; }
+  main { flex: 1; padding: 3rem; overflow-y: auto; }
+  .gap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; }
+  .gap-card { background: var(--surface); border: 1px solid #131f38; border-radius: 12px; padding: 1.5rem; border-left: 4px solid var(--accent); }
+  .poc-box { background: #0c1425; padding: 12px; border-radius: 8px; margin: 12px 0; font-size: 12px; }
+  .btn { background: var(--accent); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; }
+  input { background: #0c1425; border: 1px solid #131f38; color: white; padding: 12px; border-radius: 8px; width: 100%; margin-bottom: 1rem; }
+</style>
+</head>
+<body>
+<nav>
+  <h2>JOVEO AGENT</h2>
+  <p style="color: #8892a4; font-size: 12px;">Active POC: Isha Singh</p>
+</nav>
+<main>
+  <h1>Publisher Discovery</h1>
+  <input id="q" type="text" placeholder="Region + Vertical (e.g. UK Retail)">
+  <button class="btn" onclick="scan()">INITIALIZE SCAN</button>
+
+  <div id="gap-list" class="gap-grid" style="margin-top: 2rem;"></div>
+</main>
+
+<script>
+  let gaps = [];
+  async function scan() {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: `Find 5 publisher gaps in ${document.getElementById('q').value}` }],
+        model: 'claude-3-haiku-20240307', max_tokens: 2000
+      })
+    });
+    const data = await res.json();
+    gaps = JSON.parse(data.content[0].text);
+    render();
+  }
+
+  function render() {
+    document.getElementById('gap-list').innerHTML = gaps.map((g, i) => `
+      <div class="gap-card">
+        <h3 style="margin:0">${g.name}</h3>
+        <a href="${g.url}" target="_blank" style="color:var(--accent); font-size:12px;">${g.url}</a>
+        <div class="poc-box">
+          👤 <strong>POC:</strong> ${g.poc_name}<br>
+          📧 <strong>Email:</strong> ${g.poc_email}
+        </div>
+        <p style="font-size:13px; color:#8892a4">${g.why}</p>
+        <button class="btn" onclick="outreach(${i})">🚀 Send Outreach (Isha)</button>
+      </div>
+    `).join('');
+  }
+
+  function outreach(i) {
+    const g = gaps[i];
+    const subject = `Programmatic Demand Partnership: Joveo x ${g.name}`;
+    const body = `Hi ${g.poc_name.split(' ')[0]},\n\nI’m Isha from the Global Partnerships team at Joveo. We’re currently looking to expand our programmatic job distribution for ${g.name}...\n\nBest, Isha Singh\nishaa@joveo.com`;
+    window.open(`mailto:${g.poc_email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+  }
+</script>
+</body>
+</html>
